@@ -3,8 +3,6 @@ import sys
 import os
 from datetime import datetime
 
-# ////////////// Types
-
 class LogType:
     Debug = 1
     Info = 2,
@@ -13,146 +11,140 @@ class LogType:
     Error = 5,
     Heading = 6,
 
-# ////////////// Data
+class _Impl:
+    def __init__(self):
+        self._currentHeading = ''
+        self._outStream = sys.stdout
+        self._headerStartTime = None
+        self._errorOccurred = False
+        self._useColors = True
 
-_currentHeading = ''
-_outStream = sys.stdout
-_headerStartTime = None
-_errorOccurred = False
-_useColors = True
+    # ////////////// Public Methods
 
-# ////////////// Public Methods
+    def setStream(self, strm):
+        self._outStream = strm
 
-def SetStream(strm):
-    global _outStream
-    _outStream = strm
+    def startHeading(self, msg):
 
-def StartHeading(msg):
+        self.endHeading()
 
-    EndHeading()
+        self._errorOccurred = False
+        self._headerStartTime = datetime.now()
 
-    _errorOccurred = False
-    _headerStartTime = datetime.now()
+        self._currentHeading = msg
+        self._log(msg + "...", LogType.Heading)
 
-    _currentHeading = msg
-    _LogInternal(msg + "...", LogType.Heading)
+    def endHeading(self, msg = None):
 
-def EndHeading(msg = None):
+        if not self._headerStartTime:
+            return
 
-    if not _headerStartTime:
-        return
+        delta = datetime.now() - self._headerStartTime
 
-    delta = datetime.now() - _headerStartTime
+        message = ""
 
-    message = ""
+        if self._errorOccurred:
+            message = "   Failed"
+        else:
+            message = "   Done"
 
-    if _errorOccurred:
-        message = "   Failed"
-    else:
-        message = "   Done"
+        message = message + " (Took " + self._formatTimeDelta(delta.total_seconds()) + ")"
 
-    message = message + " (Took " + _FormatTimeDelta(delta.total_seconds()) + ")"
+        self._printLine(message)
+        self.flush()
+        self._headerStartTime = None
 
-    # Always print out headings to stdout even if using a different stream
-    if sys.stdout != _outStream:
-        _EnableColor(LogType.Error if _errorOccurred else LogType.Good)
-        print message
-        _ClearColor()
-        sys.stdout.flush()
+        if msg:
+            self._log(msg, LogType.Good)
 
-    _PrintLine(message)
-    Flush()
-    _headerStartTime = None
+    def good(self, msg):
+        self._log(msg, LogType.Good)
 
-    _LogInternal(msg, LogType.Good)
+    def info(self, msg):
+        self._printLine(msg)
+        self.flush()
 
-def Good(msg):
-    _LogInternal(msg, LogType.Good)
+    def error(self, msg):
 
-def Info(msg):
-    _PrintLine(msg)
-    Flush()
+        if self._headerStartTime:
+            self._errorOccurred = True
 
-def Error(msg):
+        self._log(msg, LogType.Error)
 
-    if _headerStartTime:
-        _errorOccurred = True
+    def flush(self, ):
+        self._outStream.flush()
 
-    _LogInternal(msg, LogType.Error)
+    def _print(self, value):
+        self._outStream.write(value)
 
-def Flush():
-    _outStream.flush()
+    def _printLine(self, value):
+        self._outStream.write(value + '\n')
 
-def _Print(value):
-    print 'yepasdf ' + _outStream
-    _outStream.write(value)
+    def _printSeperator(self, ):
+        self._printLine("**************************")
 
-def _PrintLine(value):
-    _outStream.write(value + '\n')
+    # ////////////// Private Methods
 
-def _PrintSeperator():
-    _PrintLine("**************************")
+    def _log(self, msg, logType):
 
-# ////////////// Private Methods
+        self._printSeperator()
 
-def _LogInternal(msg, logType):
+        self._printLine(msg)
 
-    _PrintSeperator()
+        self._printSeperator()
+        self.flush()
 
-    _PrintLine(msg)
+        if sys.stdout != self._outStream:
+            self._enableColor(logType)
+            print msg
+            self._clearColor()
+            sys.stdout.flush()
 
-    _PrintSeperator()
-    Flush()
+    def _getColorCode(self, logType):
+        if logType == LogType.Error:
+            return 31
 
-    if sys.stdout != _outStream:
-        _EnableColor(logType)
-        print msg
-        _ClearColor()
-        sys.stdout.flush()
+        if logType == LogType.Good:
+            return 32
 
-def _GetColorCode(logType):
-    if logType == LogType.Error:
-        return 31
+        return 0
 
-    if logType == LogType.Good:
-        return 32
+    def _enableColor(self, logType):
+        if self._useColors:
+            colorCode = self._getColorCode(logType)
 
-    return 0
+            if colorCode != 0:
+                print '\033[%dm' % colorCode,
 
-def _EnableColor(logType):
-    if _useColors:
-        colorCode = _GetColorCode(logType)
+    def _clearColor(self, ):
+        if self._useColors:
+            # Not sure why we need both of these for things to work
+            print '\033[0m',
+            print '\033[1m',
 
-        if colorCode != 0:
-            print '\033[%dm' % colorCode,
+    def _formatTimeDelta(self, seconds):
 
-def _ClearColor():
-    if _useColors:
-        # Not sure why we need both of these for things to work
-        print '\033[0m',
-        print '\033[1m',
+        hours = seconds // 3600
 
-def _FormatTimeDelta(seconds):
+        msg = ""
 
-    hours = seconds // 3600
+        if hours > 0:
+            msg += str(hours) + " hours, "
 
-    msg = ""
+        # remaining seconds
+        seconds = seconds - (hours * 3600)
+        # minutes
+        minutes = seconds // 60
 
-    if hours > 0:
-        msg += str(hours) + " hours, "
+        if minutes > 0:
+            msg += str(minutes) + " minutes, "
 
-    # remaining seconds
-    seconds = seconds - (hours * 3600)
-    # minutes
-    minutes = seconds // 60
+        # remaining seconds
+        seconds = seconds - (minutes * 60)
 
-    if minutes > 0:
-        msg += str(minutes) + " minutes, "
+        msg += "{:.1f}".format(seconds) + " seconds"
 
-    # remaining seconds
-    seconds = seconds - (minutes * 60)
+        return msg
 
-    msg += "{:.1f}".format(seconds) + " seconds"
-
-    return msg
-
+# Expose singleton logger
+Log = _Impl()

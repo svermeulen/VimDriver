@@ -1,5 +1,6 @@
 
-import Log
+from Log import Log
+import sys
 import unittest
 
 class TestStream:
@@ -12,14 +13,23 @@ class TestStream:
     def flush(self):
         pass
 
-class LogTests(unittest.TestCase):
+class LogTests2(unittest.TestCase):
+    def setUp(self):
+        Log.setStream(sys.stdout)
+
+    def test1(self):
+        Log.startHeading('stuff')
+        Log.info('hi')
+        Log.endHeading()
+
+class LogTests1(unittest.TestCase):
 
     def setUp(self):
         self.strm = TestStream()
-        Log.SetStream(self.strm)
+        Log.setStream(self.strm)
 
     def test1(self):
-        Log.Info('hi')
+        Log.info('hi')
         self.failUnlessEqual(self.strm.buffer, 'hi\n')
 
 def main():

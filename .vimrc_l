@@ -1,2 +1,9 @@
 
 call Ave#Git#AddMappings()
+
+BindAssertBufferLocal
+
+BindMethod n <leader>tum -buffer VimCommander#UpdateMarks()
+
+BindClearBufferLocal
+
