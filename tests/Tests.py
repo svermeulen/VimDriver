@@ -1,27 +1,16 @@
 
-from Logger import *
+import sys
+import unittest
 
-Log('hi')
+from vimcommander.VimCommander import VimCommander
 
-#import sys
-#import os
+class Tests1(unittest.TestCase):
 
-#from SystemHelper import SystemHelper
-#from Logger import Logger
+    def test1(self):
+        self.failUnless(False)
 
-##vim --servername FOO --remote-expr feedkeys('k')
+def main():
+    unittest.main()
 
-#class Runner:
-    #def __init__(self, logger, sys):
-        #self.logger = logger
-        #self.sys = sys
-
-    #def Run(self):
-        #self.logger.Log("hi")
-
-#if __name__ == '__main__':
-    #logger = Logger(sys.stdout, True)
-    #sysHelper = SystemHelper({}, logger)
-    #runner = Runner(logger, sysHelper)
-    #runner.Run()
-
+if __name__ == '__main__':
+    main()
