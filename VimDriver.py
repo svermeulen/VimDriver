@@ -23,11 +23,11 @@ class VimDriver:
         self.normal("i" + val)
 
     @property
-    def line(self):
+    def currentLine(self):
       return self.evaluate("getline('.')")
 
     @property
-    def lineNo(self):
+    def currentLineNo(self):
       return int(self.evaluate("line('.')"))
 
     @property
@@ -39,6 +39,9 @@ class VimDriver:
         output = SysUtil.getOutput('vim --serverlist')
         serverNames = [x.strip() for x in output.split('\n')]
         return self._serverName in serverNames
+
+    def getLine(self, lineNo):
+      return self.evaluate("getline(%s)" % str(lineNo))
 
     def startVanilla(self):
         self.start(VimDriver.EmptyVimRc)
@@ -61,7 +64,8 @@ class VimDriver:
         self.mode
 
     def stop(self):
-        self.command('qall!')
+        # Have to use raw because otherwise it will get errors when it tries to parse result from the closed vim
+        self._rawCommand('qall!')
 
         if self._proc:
             self._proc.waitForResult()
@@ -73,6 +77,9 @@ class VimDriver:
         if addUndoEntry:
             self._addUndoEntry()
 
+        # This seems to be equivalent when remap == False
+        #self._rawType(keys)
+
         rawText = r'call feedkeys("%s", "%s")' % (self._escapeFeedKeys(keys), 'm' if remap else 'n')
         self._rawCommand(rawText)
 
@@ -83,9 +90,17 @@ class VimDriver:
         self.command('redo')
 
     def command(self, cmd):
-        self._rawCommand(cmd)
+        self.normal()
+
+        varName = "vimdriver_temp"
+        self._rawCommand("redir => %s" % varName)
+        self._rawCommand("silent %s" % cmd)
+        self._rawCommand("redir end")
+
+        return self.evaluate(varName).lstrip('\r\n')
 
     def evaluate(self, expr):
+        Log.debug('Calling evaluate with "%s"' % expr)
         return SysUtil.getOutput('vim --servername %s --remote-expr "%s"' % (self._serverName, self._escapeRawType(expr)), expand = False)
 
     def getRegister(self, reg):

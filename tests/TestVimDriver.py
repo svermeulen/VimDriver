@@ -26,19 +26,19 @@ class TestsStartAndStop(unittest.TestCase):
         for i in range(0, 5):
             self.driver.startVanilla()
             self.driver.insert('hi')
-            self.assertEqual(self.driver.line, 'hi')
+            self.assertEqual(self.driver.currentLine, 'hi')
             self.driver.stop()
 
     def testClearBuffer(self):
         self.driver.startVanilla()
         self.driver.clearBuffer()
         self.driver.insert('hi')
-        self.assertEqual(self.driver.line, 'hi')
+        self.assertEqual(self.driver.currentLine, 'hi')
         self.driver.clearBuffer()
-        self.assertEqual(self.driver.line, '')
+        self.assertEqual(self.driver.currentLine, '')
         self.driver.stop()
 
-UseExistingVim = False
+UseExistingVim = True
 
 class Tests1(unittest.TestCase):
 
@@ -67,8 +67,8 @@ class Tests1(unittest.TestCase):
 
     def testInsert(self):
         self.driver.insert('hi')
-        self.assertEqual(self.driver.line, 'hi')
-        self.assertEqual(self.driver.lineNo, 1)
+        self.assertEqual(self.driver.currentLine, 'hi')
+        self.assertEqual(self.driver.currentLineNo, 1)
         self.driver.normal('^')
         self.assertEqual(self.driver.columnNo, 1)
         self.driver.normal('$')
@@ -76,17 +76,17 @@ class Tests1(unittest.TestCase):
 
     def testQuotationMarks(self):
         self.driver.command('normal! i"hi"')
-        self.assertEqual(self.driver.line, r'"hi"')
+        self.assertEqual(self.driver.currentLine, r'"hi"')
 
         self.driver.command('let test="hi"')
         self.assertEqual(self.driver.evaluate("test"), r'hi')
 
     def testVimCharacters(self):
         self.driver.insert('first line<esc>')
-        self.assertEqual(self.driver.line, r'first line')
+        self.assertEqual(self.driver.currentLine, r'first line')
         self.driver.normal('A<cr>second line')
         self.driver.normal('othird line')
-        self.assertEqual(self.driver.line, r'third line')
+        self.assertEqual(self.driver.currentLine, r'third line')
 
     def testCommandChars(self):
         # Make sure lots of characters make it there and back in one piece
@@ -115,23 +115,23 @@ class Tests1(unittest.TestCase):
         self.driver.normal('osecond<esc>')
         self.driver.normal('othird<esc>')
 
-        self.assertEqual(self.driver.line, 'third')
+        self.assertEqual(self.driver.currentLine, 'third')
         self.driver.undo()
-        self.assertEqual(self.driver.line, 'second')
+        self.assertEqual(self.driver.currentLine, 'second')
         self.driver.undo()
-        self.assertEqual(self.driver.line, 'first')
+        self.assertEqual(self.driver.currentLine, 'first')
         self.driver.redo()
         self.driver.normal('j') # redo doesn't restore cursor pos
-        self.assertEqual(self.driver.line, 'second')
+        self.assertEqual(self.driver.currentLine, 'second')
         self.driver.redo()
         self.driver.normal('j') # redo doesn't restore cursor pos
-        self.assertEqual(self.driver.line, 'third')
+        self.assertEqual(self.driver.currentLine, 'third')
 
     def testMultipleInserts(self):
         # Allow continuing in the same insert session using feedkeys
         self.driver.insert('hi')
         self.driver.feedkeys(' there')
-        self.assertEqual(self.driver.line, 'hi there')
+        self.assertEqual(self.driver.currentLine, 'hi there')
 
     def testVisualMode(self):
         self.driver.insert('the quick black<esc>0')
@@ -145,12 +145,23 @@ class Tests1(unittest.TestCase):
         self.driver.normal('V')
         self.assertEqual(self.driver.mode, 'V')
         self.driver.feedkeys('"_d')
-        self.assertEqual(self.driver.line, '')
+        self.assertEqual(self.driver.currentLine, '')
         self.assertEqual(self.driver.getRegister('"'), 'quick')
 
     def testCommandOutput(self):
-        # TODO
-        pass
+        result = self.driver.command('echo "hi"')
+        self.assertEqual(result, 'hi')
+
+        self.driver.normal('itest first')
+        self.driver.normal('otest second')
+        self.driver.normal('otest third')
+
+        result = self.driver.command('%s/test/jim/')
+        self.assertEqual(result, '3 substitutions on 3 lines')
+
+        self.assertEqual(self.driver.getLine(1), 'jim first')
+        self.assertEqual(self.driver.getLine(2), 'jim second')
+        self.assertEqual(self.driver.getLine(3), 'jim third')
 
 if __name__ == '__main__':
     unittest.main()
