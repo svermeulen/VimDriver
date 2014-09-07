@@ -38,7 +38,7 @@ class TestsStartAndStop(unittest.TestCase):
         self.assertEqual(self.driver.currentLine, '')
         self.driver.stop()
 
-UseExistingVim = True
+UseExistingVim = False
 
 class Tests1(unittest.TestCase):
 
@@ -162,6 +162,11 @@ class Tests1(unittest.TestCase):
         self.assertEqual(self.driver.getLine(1), 'jim first')
         self.assertEqual(self.driver.getLine(2), 'jim second')
         self.assertEqual(self.driver.getLine(3), 'jim third')
+
+    def testMisc(self):
+        self.driver.normal('iblurg (jimbo)<cr><esc>')
+        self.driver.normal('kf(xye')
+        self.assertEqual(self.driver.getRegister('"'), 'jimbo')
 
 if __name__ == '__main__':
     unittest.main()
