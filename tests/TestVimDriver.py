@@ -38,6 +38,7 @@ class TestsStartAndStop(unittest.TestCase):
         self.assertEqual(self.driver.currentLine, '')
         self.driver.stop()
 
+# Enabling this keeps it open and makes it easier to debug
 UseExistingVim = False
 
 class Tests1(unittest.TestCase):

@@ -10,7 +10,7 @@ from ave.util import FileUtil
 ScriptDir = os.path.dirname(os.path.realpath(__file__))
 
 class VimDriver:
-    def __init__(self, serverName):
+    def __init__(self, serverName = 'VIM_DRIVER'):
         self._serverName = serverName.upper()
         self._proc = None
 
@@ -39,6 +39,10 @@ class VimDriver:
         output = SysUtil.getOutput('vim --serverlist')
         serverNames = [x.strip() for x in output.split('\n')]
         return self._serverName in serverNames
+
+    @property
+    def mode(self):
+        return self.evaluate('mode(1)')
 
     def getLine(self, lineNo):
       return self.evaluate("getline(%s)" % str(lineNo))
@@ -97,21 +101,27 @@ class VimDriver:
         self._rawCommand("silent %s" % cmd)
         self._rawCommand("redir end")
 
-        return self.evaluate(varName).lstrip('\r\n')
+        result = self.evaluate(varName).lstrip('\r\n')
+
+        if re.match('^E\d+:', result):
+            raise Exception("Error while executing command '%s': %s" % (cmd, result))
+
+        return result
 
     def evaluate(self, expr):
         Log.debug('Calling evaluate with "%s"' % expr)
-        return SysUtil.getOutput('vim --servername %s --remote-expr "%s"' % (self._serverName, self._escapeRawType(expr)), expand = False)
+        result = SysUtil.getOutput('vim --servername %s --remote-expr "%s"' % (self._serverName, self._escapeRawType(expr)), expand = False)
+
+        if re.match('^E\d+:', result):
+            raise Exception("Error while running evaluate with '%s': %s" % (expr, result))
+
+        return result
 
     def getRegister(self, reg):
         return self.evaluate("getreg('%s')" % reg)
 
     def clearBuffer(self):
         self.normal(r'gg"_dG', remap = False)
-
-    @property
-    def mode(self):
-        return self.evaluate('mode(1)')
 
     def _escapeRawType(self, keys):
         return StringUtil.escape(keys, r'\\|"')

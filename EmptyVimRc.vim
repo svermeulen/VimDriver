@@ -2,6 +2,9 @@
 
 set nocompatible
 
+set visualbell
+set noerrorbells
+
 if has('autocmd')
     filetype plugin indent on
 endif
@@ -83,4 +86,3 @@ endif
 
 inoremap <C-U> <C-G>u<C-U>
 
-" vim:set ft=vim et sw=2:
